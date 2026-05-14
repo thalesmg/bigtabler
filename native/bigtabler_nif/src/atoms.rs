@@ -1,0 +1,13 @@
+rustler::atoms! {
+    table_name,
+    entries,
+    row_key,
+    mutations,
+    mutation,
+    set_cell,
+    value,
+    timestamp_micros,
+    column_qualifier,
+    family_name,
+    encode_error,
+}
