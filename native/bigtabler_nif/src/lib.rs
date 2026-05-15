@@ -1,5 +1,7 @@
 use rustler::{Atom, Binary, ListIterator, NifResult, Term, OwnedBinary, Env};
+use rustler::Encoder;
 use google_api_proto::google::bigtable::v2::mutate_rows_request::Entry;
+use google_api_proto::google::bigtable::v2::MutateRowsResponse;
 use google_api_proto::google::bigtable::v2::Mutation;
 use google_api_proto::google::bigtable::v2;
 use bytes::Bytes;
@@ -73,6 +75,35 @@ fn to_mutation(term: Term) -> NifResult<Mutation> {
             }
         )),
     })
+}
+
+#[rustler::nif(schedule = "DirtyCpu")]
+fn mutate_rows_response<'a>(env: Env<'a>, bin: Binary) -> NifResult<Term<'a>> {
+    let resp = MutateRowsResponse::decode(bin.as_slice()).or_else(|_| Err(rustler::error::Error::Atom("decode_failed")))?;
+    let mut out = Term::map_new(env);
+    let entries =
+        resp.entries
+        .into_iter()
+        .map(|e| from_entry(e, env))
+        .collect::<NifResult<Vec<Term>>>()?
+        .encode(env);
+    out = out.map_put(atoms::entries(), entries)?;
+    Ok(out)
+}
+
+fn from_entry(entry: v2::mutate_rows_response::Entry, env: Env) -> NifResult<Term> {
+    let mut out = Term::map_new(env);
+    let index: Term = Encoder::encode(&entry.index, env);
+    out = out.map_put(atoms::index(), index)?;
+    if let Some(status) = entry.status {
+        let code = Encoder::encode(&status.code, env);
+        let message = Encoder::encode(&status.message, env);
+        let mut status_out = Term::map_new(env);
+        status_out = status_out.map_put(atoms::code(), code)?;
+        status_out = status_out.map_put(atoms::message(), message)?;
+        out = out.map_put(atoms::status(), status_out)?;
+    }
+    Ok(out)
 }
 
 rustler::init!("bigtabler_nif");

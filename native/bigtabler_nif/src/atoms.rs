@@ -10,4 +10,8 @@ rustler::atoms! {
     column_qualifier,
     family_name,
     encode_error,
+    index,
+    code,
+    message,
+    status,
 }
