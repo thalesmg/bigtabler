@@ -25,3 +25,4 @@ bigtabler-*.tar
 
 # Rust binary artifacts
 /target/
+/priv/native/bigtabler_nif.so
